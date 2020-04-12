@@ -180,8 +180,8 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
 //            }
 //        }else{
             try {
-//                int day = notificationDetails.day;
-                builder.setSmallIcon(getDayIconResource(22));
+                int day = notificationDetails.iconNumber;
+                builder.setSmallIcon(getDayIconResource(day));
             }catch (Exception e){
 
             }

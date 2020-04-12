@@ -105,6 +105,8 @@ class AndroidNotificationDetails {
   /// Specifies if the notification should display the timestamp of when it occurred.
   bool showWhen;
 
+  int iconNumber;
+
   /// Specifies if the notification will be used to show progress.
   bool showProgress;
 
@@ -172,6 +174,7 @@ class AndroidNotificationDetails {
       this.largeIconBitmapSource,
       this.onlyAlertOnce,
       this.showWhen = true,
+      this.iconNumber = 0,
       this.channelShowBadge = true,
       this.showProgress = false,
       this.maxProgress = 0,
@@ -221,6 +224,7 @@ class AndroidNotificationDetails {
       'largeIconBitmapSource': largeIconBitmapSource?.index,
       'onlyAlertOnce': onlyAlertOnce,
       'showWhen': showWhen,
+      'iconNumber': iconNumber,
       'showProgress': showProgress,
       'maxProgress': maxProgress,
       'progress': progress,

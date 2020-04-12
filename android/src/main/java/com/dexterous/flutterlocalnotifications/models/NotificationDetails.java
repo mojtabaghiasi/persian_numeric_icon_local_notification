@@ -100,6 +100,7 @@ public class NotificationDetails {
     private static final String CATEGORY = "category";
     private static final String TIMEOUT_AFTER = "timeoutAfter";
     private static final String SHOW_WHEN = "showWhen";
+    private static final String ICON_NUMBER = "iconNumber";
 
 
     public Integer id;
@@ -148,6 +149,7 @@ public class NotificationDetails {
     public Long timeoutAfter;
     public String category;
     public Boolean showWhen;
+    public int iconNumber;
 
 
 
@@ -195,6 +197,7 @@ public class NotificationDetails {
             notificationDetails.groupAlertBehavior = (Integer) platformChannelSpecifics.get(GROUP_ALERT_BEHAVIOR);
             notificationDetails.onlyAlertOnce = (Boolean) platformChannelSpecifics.get(ONLY_ALERT_ONCE);
             notificationDetails.showWhen = (Boolean) platformChannelSpecifics.get(SHOW_WHEN);
+            notificationDetails.iconNumber = (int) platformChannelSpecifics.get(ICON_NUMBER);
             notificationDetails.showProgress = (Boolean) platformChannelSpecifics.get(SHOW_PROGRESS);
             if (platformChannelSpecifics.containsKey(MAX_PROGRESS)) {
                 notificationDetails.maxProgress = (Integer) platformChannelSpecifics.get(MAX_PROGRESS);
