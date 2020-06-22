@@ -146,7 +146,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             builder.setColor(notificationDetails.color.intValue());
         }
 
-        if (notificationDetails.showWhen != null){
+        if (notificationDetails.showWhen != null) {
             builder.setShowWhen(BooleanUtils.getValue(notificationDetails.showWhen));
         }
 
@@ -164,36 +164,36 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void setSmallIcon(Context context, NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
-        if (notificationDetails.icon.equals("app_icon")) {
-            if (!StringUtils.isNullOrEmpty(notificationDetails.icon)) {
-                builder.setSmallIcon(getDrawableResourceId(context, notificationDetails.icon));
-            } else {
-                SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE);
-                String defaultIcon = sharedPreferences.getString(DEFAULT_ICON, null);
-                if (StringUtils.isNullOrEmpty(defaultIcon)) {
-                    // for backwards compatibility: this is for handling the old way references to the icon used to be kept but should be removed in future
-                    builder.setSmallIcon(notificationDetails.iconResourceId);
 
+        if (notificationDetails.iconNumber == 0) {
+            if (notificationDetails.icon.equals("app_icon")) {
+                if (!StringUtils.isNullOrEmpty(notificationDetails.icon)) {
+                    builder.setSmallIcon(getDrawableResourceId(context, notificationDetails.icon));
                 } else {
-                    builder.setSmallIcon(getDrawableResourceId(context, defaultIcon));
+                    SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE);
+                    String defaultIcon = sharedPreferences.getString(DEFAULT_ICON, null);
+                    if (StringUtils.isNullOrEmpty(defaultIcon)) {
+                        // for backwards compatibility: this is for handling the old way references to the icon used to be kept but should be removed in future
+                        builder.setSmallIcon(notificationDetails.iconResourceId);
+
+                    } else {
+                        builder.setSmallIcon(getDrawableResourceId(context, defaultIcon));
+                    }
                 }
             }
-        }else{
-            if (notificationDetails.iconNumber != 0) {
-                try {
-                    int day = notificationDetails.iconNumber;
-                    builder.setSmallIcon(getDayIconResource(day));
-                } catch (Exception e) {
+        } else {
+            try {
+                int day = notificationDetails.iconNumber;
+                builder.setSmallIcon(getDayIconResource(day));
+            } catch (Exception e) {
 
-                }
             }
-
         }
     }
 
     @NonNull
     static Gson buildGson() {
-        if(gson == null) {
+        if (gson == null) {
             RuntimeTypeAdapterFactory<StyleInformation> styleInformationAdapter =
                     RuntimeTypeAdapterFactory
                             .of(StyleInformation.class)
@@ -375,8 +375,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
 
     /**
      * Sets the visibility property to the input Notification Builder
+     *
      * @throws IllegalArgumentException If `notificationDetails.visibility` is not null but also
-     * not matches any known index.
+     *                                  not matches any known index.
      */
     private static void setVisibility(NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
         if (notificationDetails.visibility == null) {
@@ -444,14 +445,14 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void setCategory(NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
-        if(notificationDetails.category == null) {
+        if (notificationDetails.category == null) {
             return;
         }
         builder.setCategory(notificationDetails.category);
     }
 
     private static void setTimeoutAfter(NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
-        if(notificationDetails.timeoutAfter == null) {
+        if (notificationDetails.timeoutAfter == null) {
             return;
         }
         builder.setTimeoutAfter(notificationDetails.timeoutAfter);
@@ -919,8 +920,8 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
 
     @Override
     public boolean onNewIntent(Intent intent) {
-        boolean res =  sendNotificationPayloadMessage(intent);
-        if(res && mainActivity != null) {
+        boolean res = sendNotificationPayloadMessage(intent);
+        if (res && mainActivity != null) {
             mainActivity.setIntent(intent);
         }
         return res;
