@@ -166,9 +166,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private static void setSmallIcon(Context context, NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
 
         if (notificationDetails.iconNumber == 0) {
-//            if (notificationDetails.icon.equals("app_icon")) {
-                if (!StringUtils.isNullOrEmpty("app_icon")) {
-                    builder.setSmallIcon(getDrawableResourceId(context, "app_icon"));
+            if (notificationDetails.icon.equals("app_icon")) {
+                if (!StringUtils.isNullOrEmpty(notificationDetails.icon)) {
+                    builder.setSmallIcon(getDrawableResourceId(context, notificationDetails.icon));
                 } else {
                     SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE);
                     String defaultIcon = sharedPreferences.getString(DEFAULT_ICON, null);
@@ -180,7 +180,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
                         builder.setSmallIcon(getDrawableResourceId(context, defaultIcon));
                     }
                 }
-//            }
+            }
         } else {
             try {
                 int day = notificationDetails.iconNumber;
