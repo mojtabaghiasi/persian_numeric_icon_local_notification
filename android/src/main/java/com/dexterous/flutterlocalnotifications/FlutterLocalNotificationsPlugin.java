@@ -168,7 +168,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         if (notificationDetails.iconNumber == 0) {
 //            if (notificationDetails.icon.equals("app_icon")) {
                 if (!StringUtils.isNullOrEmpty("app_icon")) {
-                    builder.setSmallIcon(getDrawableResourceId(context, "app_iconv"));
+                    builder.setSmallIcon(getDrawableResourceId(context, "app_icon"));
                 } else {
                     SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE);
                     String defaultIcon = sharedPreferences.getString(DEFAULT_ICON, null);
