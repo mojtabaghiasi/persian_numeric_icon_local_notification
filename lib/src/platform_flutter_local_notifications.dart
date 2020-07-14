@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart';
+import 'package:flutter_local_notifications/interface/flutter_local_notifications_platform_interface.dart';
 
 import 'helpers.dart';
 import 'platform_specifics/android/notification_channel.dart';
