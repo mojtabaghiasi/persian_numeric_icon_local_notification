@@ -81,6 +81,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private static final String PENDING_NOTIFICATION_REQUESTS_METHOD = "pendingNotificationRequests";
     private static final String SHOW_METHOD = "show";
     private static final String CANCEL_METHOD = "cancel";
+    private static final String MULTI_CANCEL_METHOD = "multiCancel";
     private static final String CANCEL_ALL_METHOD = "cancelAll";
     private static final String SCHEDULE_METHOD = "schedule";
     private static final String PERIODICALLY_SHOW_METHOD = "periodicallyShow";
@@ -775,6 +776,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             case CANCEL_METHOD:
                 cancel(call, result);
                 break;
+            case MULTI_CANCEL_METHOD:
+                multiCancel(call, result);
+                break;
             case CANCEL_ALL_METHOD:
                 cancelAllNotifications(result);
                 break;
@@ -811,6 +815,14 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private void cancel(MethodCall call, Result result) {
         Integer id = call.arguments();
         cancelNotification(id);
+        result.success(null);
+    }
+
+    private void multiCancel(MethodCall call, Result result) {
+        ArrayList<Integer> ids = call.arguments();
+        for (int i = 0 ; i < ids.size() ; i++){
+            cancelNotification(ids.get(i));
+        }
         result.success(null);
     }
 
