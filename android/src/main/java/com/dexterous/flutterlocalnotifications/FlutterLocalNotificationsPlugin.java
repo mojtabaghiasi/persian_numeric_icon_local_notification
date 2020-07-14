@@ -9,6 +9,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
@@ -28,6 +29,7 @@ import androidx.core.graphics.drawable.IconCompat;
 import com.dexterous.flutterlocalnotifications.models.IconSource;
 import com.dexterous.flutterlocalnotifications.models.MessageDetails;
 import com.dexterous.flutterlocalnotifications.models.NotificationChannelAction;
+import com.dexterous.flutterlocalnotifications.models.NotificationChannelDetails;
 import com.dexterous.flutterlocalnotifications.models.NotificationDetails;
 import com.dexterous.flutterlocalnotifications.models.PersonDetails;
 import com.dexterous.flutterlocalnotifications.models.styles.BigPictureStyleInformation;
@@ -42,6 +44,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -60,8 +64,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
-
-import static org.thebus.foreground_service.ConstantsKt.getDayIconResource;
+import io.flutter.view.FlutterMain;
 
 /**
  * FlutterLocalNotificationsPlugin
@@ -73,6 +76,8 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private static final String SELECT_NOTIFICATION = "SELECT_NOTIFICATION";
     private static final String SCHEDULED_NOTIFICATIONS = "scheduled_notifications";
     private static final String INITIALIZE_METHOD = "initialize";
+    private static final String CREATE_NOTIFICATION_CHANNEL_METHOD = "createNotificationChannel";
+    private static final String DELETE_NOTIFICATION_CHANNEL_METHOD = "deleteNotificationChannel";
     private static final String PENDING_NOTIFICATION_REQUESTS_METHOD = "pendingNotificationRequests";
     private static final String SHOW_METHOD = "show";
     private static final String CANCEL_METHOD = "cancel";
@@ -122,7 +127,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static Notification createNotification(Context context, NotificationDetails notificationDetails) {
-        setupNotificationChannel(context, notificationDetails);
+        setupNotificationChannel(context, NotificationChannelDetails.fromNotificationDetails(notificationDetails));
         Intent intent = new Intent(context, getMainActivityClass(context));
         intent.setAction(SELECT_NOTIFICATION);
         intent.putExtra(PAYLOAD, notificationDetails.payload);
@@ -150,6 +155,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             builder.setShowWhen(BooleanUtils.getValue(notificationDetails.showWhen));
         }
 
+        if (notificationDetails.when != null) {
+            builder.setWhen(notificationDetails.when);
+        }
 
         setVisibility(notificationDetails, builder);
         applyGrouping(notificationDetails, builder);
@@ -160,7 +168,13 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         setProgress(notificationDetails, builder);
         setCategory(notificationDetails, builder);
         setTimeoutAfter(notificationDetails, builder);
-        return builder.build();
+        Notification notification = builder.build();
+        if (notificationDetails.additionalFlags != null && notificationDetails.additionalFlags.length > 0) {
+            for(int additionalFlag:notificationDetails.additionalFlags) {
+                notification.flags |= additionalFlag;
+            }
+        }
+        return notification;
     }
 
     private static void setSmallIcon(Context context, NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
@@ -346,7 +360,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
 
     private static Bitmap getBitmapFromSource(Context context, String bitmapPath, BitmapSource bitmapSource) {
         Bitmap bitmap = null;
-        if (bitmapSource == BitmapSource.Drawable) {
+        if (bitmapSource == BitmapSource.DrawableResource) {
             bitmap = BitmapFactory.decodeResource(context.getResources(), getDrawableResourceId(context, bitmapPath));
         } else if (bitmapSource == BitmapSource.FilePath) {
             bitmap = BitmapFactory.decodeFile(bitmapPath);
@@ -358,14 +372,25 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private static IconCompat getIconFromSource(Context context, String iconPath, IconSource iconSource) {
         IconCompat icon = null;
         switch (iconSource) {
-            case Drawable:
+            case DrawableResource:
                 icon = IconCompat.createWithResource(context, getDrawableResourceId(context, iconPath));
                 break;
-            case FilePath:
+            case BitmapFilePath:
                 icon = IconCompat.createWithBitmap(BitmapFactory.decodeFile(iconPath));
                 break;
             case ContentUri:
                 icon = IconCompat.createWithContentUri(iconPath);
+                break;
+            case FlutterBitmapAsset:
+                try {
+                    AssetFileDescriptor assetFileDescriptor = context.getAssets().openFd(FlutterMain.getLookupKeyForAsset(iconPath));
+                    FileInputStream fileInputStream = assetFileDescriptor.createInputStream();
+                    icon = IconCompat.createWithBitmap(BitmapFactory.decodeStream(fileInputStream));
+                    fileInputStream.close();
+                    assetFileDescriptor.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             default:
                 break;
@@ -404,7 +429,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void applyGrouping(NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
-        Boolean isGrouped = false;
+        boolean isGrouped = false;
         if (!StringUtils.isNullOrEmpty(notificationDetails.groupKey)) {
             builder.setGroup(notificationDetails.groupKey);
             isGrouped = true;
@@ -437,7 +462,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
 
     private static void setSound(Context context, NotificationDetails notificationDetails, NotificationCompat.Builder builder) {
         if (BooleanUtils.getValue(notificationDetails.playSound)) {
-            Uri uri = retrieveSoundResourceUri(context, notificationDetails);
+            Uri uri = retrieveSoundResourceUri(context, notificationDetails.sound, notificationDetails.soundSource);
             builder.setSound(uri);
         } else {
             builder.setSound(null);
@@ -554,8 +579,8 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             messagingStyle.setConversationTitle(messagingStyleInformation.conversationTitle);
         }
         if (messagingStyleInformation.messages != null && !messagingStyleInformation.messages.isEmpty()) {
-            for (Iterator<MessageDetails> it = messagingStyleInformation.messages.iterator(); it.hasNext(); ) {
-                NotificationCompat.MessagingStyle.Message message = createMessage(context, it.next());
+            for (MessageDetails messageDetails : messagingStyleInformation.messages) {
+                NotificationCompat.MessagingStyle.Message message = createMessage(context, messageDetails);
                 messagingStyle.addMessage(message);
             }
         }
@@ -611,45 +636,49 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         builder.setStyle(bigTextStyle);
     }
 
-    private static void setupNotificationChannel(Context context, NotificationDetails notificationDetails) {
+    private static void setupNotificationChannel(Context context, NotificationChannelDetails notificationChannelDetails) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            NotificationChannel notificationChannel = notificationManager.getNotificationChannel(notificationDetails.channelId);
+            NotificationChannel notificationChannel = notificationManager.getNotificationChannel(notificationChannelDetails.id);
             // only create/update the channel when needed/specified. Allow this happen to when channelAction may be null to support cases where notifications had been
             // created on older versions of the plugin where channel management options weren't available back then
-            if ((notificationChannel == null && (notificationDetails.channelAction == null || notificationDetails.channelAction == NotificationChannelAction.CreateIfNotExists)) || (notificationChannel != null && notificationDetails.channelAction == NotificationChannelAction.Update)) {
-                notificationChannel = new NotificationChannel(notificationDetails.channelId, notificationDetails.channelName, notificationDetails.importance);
-                notificationChannel.setDescription(notificationDetails.channelDescription);
-                if (notificationDetails.playSound) {
+            if ((notificationChannel == null && (notificationChannelDetails.channelAction == null || notificationChannelDetails.channelAction == NotificationChannelAction.CreateIfNotExists)) || (notificationChannel != null && notificationChannelDetails.channelAction == NotificationChannelAction.Update)) {
+                notificationChannel = new NotificationChannel(notificationChannelDetails.id, notificationChannelDetails.name, notificationChannelDetails.importance);
+                notificationChannel.setDescription(notificationChannelDetails.description);
+                if (notificationChannelDetails.playSound) {
                     AudioAttributes audioAttributes = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build();
-                    Uri uri = retrieveSoundResourceUri(context, notificationDetails);
+                    Uri uri = retrieveSoundResourceUri(context, notificationChannelDetails.sound, notificationChannelDetails.soundSource);
                     notificationChannel.setSound(uri, audioAttributes);
                 } else {
                     notificationChannel.setSound(null, null);
                 }
-                notificationChannel.enableVibration(BooleanUtils.getValue(notificationDetails.enableVibration));
-                if (notificationDetails.vibrationPattern != null && notificationDetails.vibrationPattern.length > 0) {
-                    notificationChannel.setVibrationPattern(notificationDetails.vibrationPattern);
+                notificationChannel.enableVibration(BooleanUtils.getValue(notificationChannelDetails.enableVibration));
+                if (notificationChannelDetails.vibrationPattern != null && notificationChannelDetails.vibrationPattern.length > 0) {
+                    notificationChannel.setVibrationPattern(notificationChannelDetails.vibrationPattern);
                 }
-                boolean enableLights = BooleanUtils.getValue(notificationDetails.enableLights);
+                boolean enableLights = BooleanUtils.getValue(notificationChannelDetails.enableLights);
                 notificationChannel.enableLights(enableLights);
-                if (enableLights && notificationDetails.ledColor != null) {
-                    notificationChannel.setLightColor(notificationDetails.ledColor);
+                if (enableLights && notificationChannelDetails.ledColor != null) {
+                    notificationChannel.setLightColor(notificationChannelDetails.ledColor);
                 }
-                notificationChannel.setShowBadge(BooleanUtils.getValue(notificationDetails.channelShowBadge));
+                notificationChannel.setShowBadge(BooleanUtils.getValue(notificationChannelDetails.showBadge));
                 notificationManager.createNotificationChannel(notificationChannel);
             }
         }
     }
 
-    private static Uri retrieveSoundResourceUri(Context context, NotificationDetails notificationDetails) {
-        Uri uri;
-        if (StringUtils.isNullOrEmpty(notificationDetails.sound)) {
+    private static Uri retrieveSoundResourceUri(Context context, String sound, SoundSource soundSource) {
+        Uri uri = null;
+        if (StringUtils.isNullOrEmpty(sound)) {
             uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         } else {
-
-            int soundResourceId = context.getResources().getIdentifier(notificationDetails.sound, "raw", context.getPackageName());
-            return Uri.parse("android.resource://" + context.getPackageName() + "/" + soundResourceId);
+            // allow null as soundSource was added later and prior to that, it was assumed to be a raw resource
+            if (soundSource == null || soundSource == SoundSource.RawResource) {
+                int soundResourceId = context.getResources().getIdentifier(sound, "raw", context.getPackageName());
+                uri = Uri.parse("android.resource://" + context.getPackageName() + "/" + soundResourceId);
+            } else if (soundSource == SoundSource.Uri) {
+                uri = Uri.parse(sound);
+            }
         }
         return uri;
     }
@@ -752,6 +781,12 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             case PENDING_NOTIFICATION_REQUESTS_METHOD:
                 pendingNotificationRequests(result);
                 break;
+            case CREATE_NOTIFICATION_CHANNEL_METHOD:
+                createNotificationChannel(call, result);
+                break;
+            case DELETE_NOTIFICATION_CHANNEL_METHOD:
+                deleteNotificationChannel(call, result);
+                break;
             default:
                 result.notImplemented();
                 break;
@@ -842,7 +877,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         if (hasInvalidIcon(result, notificationDetails.icon) ||
                 hasInvalidLargeIcon(result, notificationDetails.largeIcon, notificationDetails.largeIconBitmapSource) ||
                 hasInvalidBigPictureResources(result, notificationDetails) ||
-                hasInvalidSound(result, notificationDetails.sound) ||
+                hasInvalidRawSoundResource(result, notificationDetails) ||
                 hasInvalidLedDetails(result, notificationDetails)) {
             return null;
         }
@@ -858,9 +893,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         return false;
     }
 
-    private boolean hasInvalidSound(Result result, String sound) {
-        if (!StringUtils.isNullOrEmpty(sound)) {
-            int soundResourceId = applicationContext.getResources().getIdentifier(sound, "raw", applicationContext.getPackageName());
+    private boolean hasInvalidRawSoundResource(Result result, NotificationDetails notificationDetails) {
+        if (!StringUtils.isNullOrEmpty(notificationDetails.sound) && (notificationDetails.soundSource == null || notificationDetails.soundSource == SoundSource.RawResource)) {
+            int soundResourceId = applicationContext.getResources().getIdentifier(notificationDetails.sound, "raw", applicationContext.getPackageName());
             if (soundResourceId == 0) {
                 result.error(INVALID_SOUND_ERROR_CODE, INVALID_RAW_RESOURCE_ERROR_MESSAGE, null);
                 return true;
@@ -874,13 +909,13 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             BigPictureStyleInformation bigPictureStyleInformation = (BigPictureStyleInformation) notificationDetails.styleInformation;
             if (hasInvalidLargeIcon(result, bigPictureStyleInformation.largeIcon, bigPictureStyleInformation.largeIconBitmapSource))
                 return true;
-            return bigPictureStyleInformation.bigPictureBitmapSource == BitmapSource.Drawable && !isValidDrawableResource(applicationContext, bigPictureStyleInformation.bigPicture, result, INVALID_BIG_PICTURE_ERROR_CODE);
+            return bigPictureStyleInformation.bigPictureBitmapSource == BitmapSource.DrawableResource && !isValidDrawableResource(applicationContext, bigPictureStyleInformation.bigPicture, result, INVALID_BIG_PICTURE_ERROR_CODE);
         }
         return false;
     }
 
     private boolean hasInvalidLargeIcon(Result result, String largeIcon, BitmapSource largeIconBitmapSource) {
-        return !StringUtils.isNullOrEmpty(largeIcon) && largeIconBitmapSource == BitmapSource.Drawable && !isValidDrawableResource(applicationContext, largeIcon, result, INVALID_LARGE_ICON_ERROR_CODE);
+        return !StringUtils.isNullOrEmpty(largeIcon) && largeIconBitmapSource == BitmapSource.DrawableResource && !isValidDrawableResource(applicationContext, largeIcon, result, INVALID_LARGE_ICON_ERROR_CODE);
     }
 
     private boolean hasInvalidIcon(Result result, String icon) {
@@ -935,6 +970,20 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         }
         return false;
     }
+
+    private void createNotificationChannel(MethodCall call, Result result) {
+        Map<String, Object> arguments = call.arguments();
+        NotificationChannelDetails notificationChannelDetails = NotificationChannelDetails.from(arguments);
+        setupNotificationChannel(applicationContext, notificationChannelDetails);
+        result.success(null);
+    }
+
+    private void deleteNotificationChannel(MethodCall call, Result result) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationManager notificationManager = (NotificationManager) applicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                String channelId = call.arguments();
+                notificationManager.deleteNotificationChannel(channelId);
+                result.success(null);
+        }
+    }
 }
-
-

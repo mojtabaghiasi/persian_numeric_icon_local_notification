@@ -1,8 +1,13 @@
 /// Specifies the source for a bitmap used by Android notifications.
-enum BitmapSource { Drawable, FilePath }
+enum AndroidBitmapSource { Drawable, FilePath }
 
 /// Specifies the source for icons.
-enum IconSource { Drawable, FilePath, ContentUri }
+enum AndroidIconSource {
+  DrawableResource,
+  BitmapFilePath,
+  ContentUri,
+  FlutterBitmapAsset
+}
 
 /// The available notification styles on Android.
 enum AndroidNotificationStyle {
@@ -12,6 +17,11 @@ enum AndroidNotificationStyle {
   Inbox,
   Messaging,
   Media
+}
+
+enum AndroidNotificationSoundSource {
+  RawResource,
+  Uri,
 }
 
 /// The available actions for managing notification channels.
@@ -24,6 +34,8 @@ enum AndroidNotificationChannelAction { CreateIfNotExists, Update }
 ///
 /// Required for Android 8.0+
 class Importance {
+  const Importance(this.value);
+
   static const Unspecified = Importance(-1000);
   static const None = Importance(0);
   static const Min = Importance(1);
@@ -37,12 +49,12 @@ class Importance {
       [Unspecified, None, Min, Low, Default, High, Max];
 
   final int value;
-
-  const Importance(this.value);
 }
 
 /// Priority for notifications on Android 7.1 and lower.
 class Priority {
+  const Priority(this.value);
+
   static const Min = Priority(-2);
   static const Low = Priority(-1);
   static const Default = Priority(0);
@@ -53,8 +65,6 @@ class Priority {
   static List<Priority> get values => [Min, Low, Default, High, Max];
 
   final int value;
-
-  const Priority(this.value);
 }
 
 /// The available alert behaviours for grouped notifications.

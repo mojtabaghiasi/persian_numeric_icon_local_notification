@@ -1,3 +1,138 @@
+# [1.4.4+2]
+
+* [Android] Updated readme and plugin to fix issue [689](https://github.com/MaikuB/flutter_local_notifications/issues/689) where plugin needs to ensure notifications stay scheduled after an application update
+* Removed `e2e` dependency
+
+# [1.4.4+1]
+
+* Added details that platform-specific implementations can be obtained to the _Caveats and limitations_ section
+* Added a note on restrictions imposed by the OS by Android OEMs that may be prevent scheduled notifications appearing
+* _Release configurations_ section of the readme renamed to _Release build configuration_
+
+# [1.4.4]
+
+* [iOS] Fixes to ensure that the native completion handlers were called appropriately. If you had some issues using this plugin combined with push notifications (e.g. via `firebase_messaging`) when the app was in the foreground then I would recommend updating to this version. Thanks to [Paweł Szot](https://github.com/szotp) for picking up the gap in the code in handling the native `willPresentNotification` call
+* The readme has been been touched up and had some sections rearranged. Thanks to the PR from [psyanite](https://github.com/psyanite)
+* Bumped lower bound of Dart SDK dependency to 2.0
+
+# [1.4.3]
+
+* [Android] added the ability to specify additional flags for the notification. For example, this could be used to allow the audio to repeat. See the API docs and update example app for more details. Thanks to the PR from [andylei](https://github.com/andylei)
+* Minor cleanup of API docs
+
+# [1.4.2]
+
+* [Android] added the ability to specify the timestamp shown in the notification (issue [596](https://github.com/MaikuB/flutter_local_notifications/issues/596)). Thanks to the PR from [Nicolas Schneider](https://github.com/nioncode).
+* Fixed API docs for `showWeeklyAtDayAndTime`
+
+# [1.4.1]
+
+* [Android] added the ability to create notification channels before a notification is shown. This can be done by calling the `createNotificationChannel` within the `AndroidFlutterLocalNotificationsPlugin` class. This allows applications to create notification channels before a notification is shown. Thanks to the PR from [Vladimir Gerashchenko](https://github.com/ZaarU).
+* [Android] added the ability to delete notification channels. This can be done by calling `deleteNotificationChannel`  within `AndroidFlutterLocalNotificationsPlugin` class.
+
+# [1.4.0]
+
+Please note that there are a number of breaking changes in this release to improve the developer experience when using the plugin APIs. The changes should hopefully be straightforward but please through the changelog carefully just in case. The steps migrate your code has been covered below but the Git history of the example application's `main.dart` file can also be used as reference.
+
+* [Android] **BREAKING CHANGE** The `style` property of the `AndroidNotificationDetails` class has been removed as it was redundant. No changes are needed unless your application was displaying media notifications (i.e. `style` was set to `AndroidNotificationStyle.Media`). If this is the case, you can migrate your code by setting the `styleInformation` property of the `AndroidNotificationDetails` to an instance of the `MediaNotificationStyleInformation` class. This class is a new addition in this release
+* [Android] **BREAKING CHANGE** The `AndroidNotificationSound` abstract class has been introduced to represent Android notification sounds. The `sound` property of the `AndroidNotificationDetails` class has changed from being a `String` type to an `AndroidNotificationSound` type. In this release, the `AndroidNotificationSound` has the following subclasses
+
+  * `RawResourceAndroidNotificationSound`: use this when the sound is raw resource associated with the Android application. Previously, this was the only type of sound supported so applications using the plugin prior to 1.4.0 can migrate their application by using this class. For example, if your previous code was
+
+    ```dart
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your other channel id',
+      'your other channel name',
+      'your other channel description',
+      sound: 'slow_spring_board');
+    ```
+
+    Replace it with
+
+    ```dart
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your other channel id',
+      'your other channel name',
+      'your other channel description',
+      sound: RawResourceAndroidNotificationSound('slow_spring_board');
+    ```
+
+  * `UriAndroidNotificationSound`: use this when a URI refers to the sound on the Android device. This is a new feature being supported as part of this release. Developers may need to write their code to access native Android APIs (e.g. the `RingtoneManager` APIs) to obtain the URIs they need.
+* [Android] **BREAKING CHANGE** The `BitmapSource` enum has been replaced by the newly `AndroidBitmap` abstract class and its subclasses. This removes the need to specify the name/path of the bitmap and the source of the bitmap as two separate properties (e.g. the `largeIcon` and `largeIconBitmapSource` properties of the `AndroidNotificationDetails` class). This change affects the following classes
+
+  * `AndroidNotificationDetails`: the `largeIcon` is now an `AndroidBitmap` type instead of a `String` and the `largeIconBitmapSource` property has been removed
+  * `BigPictureStyleInformation`: the `largeIcon` is now an `AndroidBitmap` type instead of a `String` and the `largeIconBitmapSource` property has been removed. The `bigPicture` is now a `AndroidBitmap` type instead of a `String` and the `bigPictureBitmapSource` property has been removed
+
+  The following describes how each `BitmapSource` value maps to the `AndroidBitmap` subclasses
+
+  * `BitmapSource.Drawable` -> `DrawableResourceAndroidBitmap`
+  * `BitmapSource.FilePath` -> `FilePathAndroidBitmap`
+
+  Each of these subclasses has a constructor that an argument referring to the bitmap itself. For example, if you previously had the following code 
+
+    ```dart
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your other channel id',
+      'your other channel name',
+      'your other channel description',
+      largeIcon: 'sample_large_icon',
+      largeIconBitmapSource: BitmapSource.Drawable,
+    )
+    ```
+
+    This would now be replaced with
+
+    ```dart
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your other channel id',
+      'your other channel name',
+      'your other channel description',
+      largeIcon: DrawableResourceAndroidBitmap('sample_large_icon'),
+    )
+    ```
+* [Android] **BREAKING CHANGE** The `IconSource` enum has been replaced by the newly added `AndroidIcon` abstract class and its subclasses. This change was done for similar reasons in replacing the `BitmapSource` enum. This only affects the `Person` class, which is used when displaying each person in a messaging-style notification. Here the `icon` property is now an `AndroidIcon` type instead of a `String` and the `iconSource` property has been removed.
+
+  The following describes how each `IconSource` value maps to the `AndroidIcon` subclasses
+
+    * `IconSource.Drawable` -> `DrawableResourceAndroidIcon`
+    * `IconSource.FilePath` -> `BitmapFilePathAndroidIcon`
+    * `IconSource.ContentUri` -> `ContentUriAndroidIcon`
+
+  Each of these subclasses has a constructor that accepts an argument referring to the icon itself. For example, if you previously had the following code
+
+  ```dart
+  Person(
+    icon: 'me',
+    iconSource: IconSource.Drawable,
+  )
+  ```
+
+  This would now be replaced with
+
+  ```dart
+  Person(
+    icon: DrawableResourceAndroidIcon('me'),
+  )
+  ```
+
+  The `AndroidIcon` also has a `BitmapAssetAndroidIcon` subclass to enables the usage of bitmap icons that have been registered as a Flutter asset via the `pubspec.yaml` file.
+* [Android] **BREAKING CHANGE** All properties in the `AndroidNotificationDetails`, `DefaultStyleInformation` and `InboxStyleInformation` classes have been made `final`
+* The `DefaultStyleInformation` class now implements the `StyleInformation` class instead of extending it
+* Where possible, classes in the plugins have been updated to provide `const` constructors
+* Updates to API docs and readme
+* Bump Android dependencies 
+* Fixed a grammar issue 0.9.1 changelog entry
+
+# [1.3.0]
+
+* [iOS] **BREAKING CHANGE** Plugin will now throw a `PlatformException` if there was an error returned upon calling the native [`addNotificationRequest`](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/1649508-addnotificationrequest) method. Previously the error was logged on the native side the using [`NSLog`](https://developer.apple.com/documentation/foundation/1395275-nslog) function.
+* [iOS] Added ability to associate notifications with attachments. Only applicable to iOS 10+ where the UserNotification APIs are used. Thanks to the PR from [Pavel Sipaylo](https://github.com/psipaylo)
+* Updated readme on using `firebase_messaging` together with `flutter_local_notifications` to let the community that `firebase_messaging` 6.0.13 can be used to resolve compatibility issues around callbacks when both plugins are used together
+
+# [1.2.2]
+
+* [Android] Added ability to specify if the timestamp for when a notification occurred should be displayed. Thanks to the PR from [mojtabaghiasi](https://github.com/mojtabaghiasi)
+
 # [1.2.1]
 
 * [Android] Fixed issue [512](https://github.com/MaikuB/flutter_local_notifications/issues/512) where calling `getNotificationAppLaunchDetails()` within the `onSelectNotification` callback could indicating that the app was launched by tapping on a notification when it wasn't the case
@@ -112,7 +247,7 @@
 
 # [0.9.1]
 
-* Add support for media notification. This currently only supports showing the specified image as album artwork. Thanks to PR by [gianlucaparadise](https://github.com/gianlucaparadise)
+* Added support for media notifications. This currently only supports showing the specified image as album artwork. Thanks to the PR by [gianlucaparadise](https://github.com/gianlucaparadise)
 
 # [0.9.0+1]
 
