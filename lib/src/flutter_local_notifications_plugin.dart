@@ -153,6 +153,10 @@ class FlutterLocalNotificationsPlugin {
     await FlutterLocalNotificationsPlatform.instance?.cancel(id);
   }
 
+  Future<void> multiCancel(List<int> ids) async {
+    await FlutterLocalNotificationsPlatform.instance?.multiCancel(ids);
+  }
+
   /// Cancels/removes all notifications.
   ///
   /// This applies to notifications that have been scheduled and those that have already been presented.
