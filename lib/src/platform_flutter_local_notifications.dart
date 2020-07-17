@@ -25,11 +25,10 @@ class MethodChannelFlutterLocalNotificationsPlugin
     return _channel.invokeMethod('cancel', id);
   }
 
-  @override
-  Future<void> multiCancel(List<int> ids) {
-//    validateId(id);
-    return _channel.invokeMethod('multiCancel', ids);
-  }
+//  Future<void> multiCancel(List<int> ids) {
+////    validateId(id);
+//    return _channel.invokeMethod('multiCancel', ids);
+//  }
 
   @override
   Future<void> cancelAll() {
