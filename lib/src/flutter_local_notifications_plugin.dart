@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/interface/flutter_local_notifications_platform_interface.dart';
+import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart';
 import 'package:platform/platform.dart';
 
 import 'initialization_settings.dart';
@@ -154,7 +154,7 @@ class FlutterLocalNotificationsPlugin {
   }
 
   Future<void> multiCancel(List<int> ids) async {
-    await FlutterLocalNotificationsPlatform.instance?.multiCancel(ids);
+//    await FlutterLocalNotificationsPlatform.instance?.multiCancel(ids);
   }
 
   /// Cancels/removes all notifications.

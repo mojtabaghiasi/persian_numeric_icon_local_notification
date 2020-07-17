@@ -1,4 +1,4 @@
-export 'interface/flutter_local_notifications_platform_interface.dart'
+export 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart'
     show
         PendingNotificationRequest,
         RepeatInterval,
