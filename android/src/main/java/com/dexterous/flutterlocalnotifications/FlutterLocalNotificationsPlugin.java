@@ -66,7 +66,8 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.view.FlutterMain;
 
-import static org.thebus.foreground_service.ConstantsKt.getDayIconResource;
+import static com.dexterous.flutterlocalnotifications.ConstantsKt.getDayIconResource;
+
 
 /**
  * FlutterLocalNotificationsPlugin

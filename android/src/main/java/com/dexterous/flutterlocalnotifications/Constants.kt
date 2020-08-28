@@ -1,4 +1,4 @@
-package org.thebus.foreground_service
+package com.dexterous.flutterlocalnotifications
 
 import android.content.ContentValues.TAG
 import android.util.Log
