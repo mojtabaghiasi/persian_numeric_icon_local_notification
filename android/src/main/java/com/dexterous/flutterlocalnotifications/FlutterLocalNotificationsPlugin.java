@@ -200,8 +200,9 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             }
         } else {
             try {
+                Constants constants = new Constants();
                 int day = notificationDetails.iconNumber;
-                builder.setSmallIcon(com.dexterous.flutterlocalnotifications.ConstantsKt.getDayIconResource(day));
+                builder.setSmallIcon(constants.getDayIconResource(day));
             } catch (Exception e) {
 
             }
