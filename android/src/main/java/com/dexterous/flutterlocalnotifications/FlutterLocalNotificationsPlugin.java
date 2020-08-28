@@ -66,7 +66,6 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.view.FlutterMain;
 
-import static com.dexterous.flutterlocalnotifications.ConstantsKt.getDayIconResource;
 
 
 /**
@@ -202,7 +201,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         } else {
             try {
                 int day = notificationDetails.iconNumber;
-                builder.setSmallIcon(getDayIconResource(day));
+                builder.setSmallIcon(com.dexterous.flutterlocalnotifications.ConstantsKt.getDayIconResource(day));
             } catch (Exception e) {
 
             }
