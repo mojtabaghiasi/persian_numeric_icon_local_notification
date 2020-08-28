@@ -54,8 +54,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.dexterous.flutterlocalnotifications.Constants;
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
@@ -68,6 +66,7 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.view.FlutterMain;
 
+import static com.dexterous.flutterlocalnotifications.ConstantsKt.getDayIconResource;
 
 
 /**
@@ -202,9 +201,8 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             }
         } else {
             try {
-                Constants constants = new Constants();
                 int day = notificationDetails.iconNumber;
-                builder.setSmallIcon(constants.getDayIconResource(day));
+                builder.setSmallIcon(getDayIconResource(day));
             } catch (Exception e) {
 
             }
